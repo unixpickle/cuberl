@@ -11,17 +11,27 @@ import (
 	"github.com/unixpickle/gocube"
 )
 
-// An Agent is a stateful agent.
-type Agent struct {
-	Block anyrnn.Block
+// NewAgent creates a new agent RNN.
+func NewAgent(c anyvec.Creator, hidden int) anyrnn.Block {
+	inScale := c.MakeNumeric(6)
+	return anyrnn.Stack{
+		anyrnn.NewLSTM(c, CubeVectorSize, hidden).ScaleInWeights(inScale),
+		anyrnn.NewLSTM(c, hidden, hidden),
+		&anyrnn.LayerBlock{
+			Layer: anynet.Net{
+				anynet.NewFC(c, hidden, NumActions),
+			},
+		},
+	}
 }
 
 // QSamples creates sequence-to-sequences samples that
 // adjust the agent's value function using Q-Learning.
-func (a *Agent) QSamples(start []*State, steps int, discount, explore float64) *anys2s.Batch {
+func QSamples(agent anyrnn.Block, start []*State, steps int, discount,
+	explore float64) *anys2s.Batch {
 	state := append([]*State{}, start...)
-	blockState := a.Block.Start(len(start))
-	cr := a.creator()
+	blockState := agent.Start(len(start))
+	cr := agentCreator(agent)
 
 	var ins, outs []*anyseq.Batch
 	present := make([]bool, len(start))
@@ -39,7 +49,7 @@ func (a *Agent) QSamples(start []*State, steps int, discount, explore float64) *
 		inVec := cr.Concat(cubeIns...)
 		ins = append(ins, &anyseq.Batch{Packed: inVec, Present: present})
 
-		res := a.Block.Step(blockState, inVec)
+		res := agent.Step(blockState, inVec)
 		blockState = res.State()
 
 		if i > 0 {
@@ -71,8 +81,8 @@ func (a *Agent) QSamples(start []*State, steps int, discount, explore float64) *
 	}
 }
 
-func (a *Agent) creator() anyvec.Creator {
-	return a.Block.(anynet.Parameterizer).Parameters()[0].Vector.Creator()
+func agentCreator(b anyrnn.Block) anyvec.Creator {
+	return b.(anynet.Parameterizer).Parameters()[0].Vector.Creator()
 }
 
 func correctedPred(predictions, nextOut anyvec.Vector, immRew []float64) anyvec.Vector {

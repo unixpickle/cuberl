@@ -12,6 +12,10 @@ import (
 // in the half-turn metric.
 const NumActions = 18
 
+// CubeVectorSize is the size of vectors produced by
+// CubeVector.
+const CubeVectorSize = 8 * 6 * 6
+
 // State implements cube dynamics and a reward mechanism.
 type State struct {
 	// Cube is the current state of the cube.
@@ -54,7 +58,7 @@ func (s *State) NumSolved() int {
 // cube state.
 func CubeVector(creator anyvec.Creator, cube *gocube.CubieCube) anyvec.Vector {
 	stickers := cube.StickerCube()
-	data := make([]float64, 0, 8*6*6)
+	data := make([]float64, 0, CubeVectorSize)
 	for i, x := range stickers[:] {
 		if (i-4)%9 == 0 {
 			// Avoid the center pieces.
