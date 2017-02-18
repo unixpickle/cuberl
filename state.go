@@ -8,6 +8,10 @@ import (
 	"github.com/unixpickle/gocube"
 )
 
+// NumActions is the number of distinct Rubik's cube moves
+// in the half-turn metric.
+const NumActions = 18
+
 // State implements cube dynamics and a reward mechanism.
 type State struct {
 	// Cube is the current state of the cube.
