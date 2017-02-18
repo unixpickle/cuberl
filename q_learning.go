@@ -28,8 +28,8 @@ func QSamples(agent anyrnn.Block, start []*State, steps int, discount,
 	var lastReward []float64
 	for i := 0; i < steps; i++ {
 		cubeIns := make([]anyvec.Vector, len(state))
-		for i, s := range state {
-			cubeIns[i] = CubeVector(cr, &s.Cube)
+		for j, s := range state {
+			cubeIns[j] = CubeVector(cr, &s.Cube)
 		}
 		inVec := cr.Concat(cubeIns...)
 		ins = append(ins, &anyseq.Batch{Packed: inVec, Present: present})
@@ -47,13 +47,13 @@ func QSamples(agent anyrnn.Block, start []*State, steps int, discount,
 		}
 
 		lastOut = res.Output()
-		lastReward := make([]float64, len(state))
-		for i, s := range state {
-			moveIdx := anyvec.MaxIndex(lastOut.Slice(i*NumActions, (i+1)*NumActions))
+		lastReward = make([]float64, len(state))
+		for j, s := range state {
+			moveIdx := anyvec.MaxIndex(lastOut.Slice(j*NumActions, (j+1)*NumActions))
 			if rand.Float64() < explore {
 				moveIdx = rand.Intn(NumActions)
 			}
-			state[i], lastReward[i] = s.Move(gocube.Move(moveIdx))
+			state[j], lastReward[j] = s.Move(gocube.Move(moveIdx))
 		}
 	}
 

@@ -28,6 +28,15 @@ type State struct {
 	MaxSolved int
 }
 
+// RandomStates produces n random start states.
+func RandomStates(n int) []*State {
+	res := make([]*State, n)
+	for i := range res {
+		res[i] = &State{Cube: gocube.RandomCubieCube()}
+	}
+	return res
+}
+
 // Move produces a new State and an immediate reward
 // from applying the move m to the state e.
 func (s *State) Move(m gocube.Move) (*State, float64) {
