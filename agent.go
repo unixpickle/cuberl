@@ -14,15 +14,11 @@ import (
 // An Agent is a stateful agent.
 type Agent struct {
 	Block anyrnn.Block
-
-	// Explore is the fraction of the time a move should be
-	// made randomly.
-	Explore float64
 }
 
 // QSamples creates sequence-to-sequences samples that
 // adjust the agent's value function using Q-Learning.
-func (a *Agent) QSamples(start []*State, steps int, discount float64) *anys2s.Batch {
+func (a *Agent) QSamples(start []*State, steps int, discount, explore float64) *anys2s.Batch {
 	state := append([]*State{}, start...)
 	blockState := a.Block.Start(len(start))
 	cr := a.creator()
@@ -47,8 +43,10 @@ func (a *Agent) QSamples(start []*State, steps int, discount float64) *anys2s.Ba
 		blockState = res.State()
 
 		if i > 0 {
+			discounted := res.Output().Copy()
+			discounted.Scale(cr.MakeNumeric(discount))
 			outs = append(outs, &anyseq.Batch{
-				Packed:  correctedPred(lastOut, res.Output(), lastReward),
+				Packed:  correctedPred(lastOut, discounted, lastReward),
 				Present: present,
 			})
 		}
@@ -57,7 +55,7 @@ func (a *Agent) QSamples(start []*State, steps int, discount float64) *anys2s.Ba
 		lastReward := make([]float64, len(state))
 		for i, s := range state {
 			moveIdx := anyvec.MaxIndex(lastOut.Slice(i*NumActions, (i+1)*NumActions))
-			if rand.Float64() < a.Explore {
+			if rand.Float64() < explore {
 				moveIdx = rand.Intn(NumActions)
 			}
 			state[i], lastReward[i] = s.Move(gocube.Move(moveIdx))
