@@ -12,7 +12,7 @@ import (
 
 // Samples creates sequence-to-sequences samples that are
 // meant to be used in conjunction with anynet.DotCost{}.
-func Samples(agent anyrnn.Block, start []*State, steps int) *anys2s.Batch {
+func Samples(agent anyrnn.Block, start []*State, steps int, baseline float64) *anys2s.Batch {
 	if steps == 0 {
 		panic("must take at least one step")
 	}
@@ -49,6 +49,10 @@ func Samples(agent anyrnn.Block, start []*State, steps int) *anys2s.Batch {
 			moves = append(moves, moveIdx)
 		}
 		moveHistory = append(moveHistory, moves)
+	}
+
+	for i := range totalRewards {
+		totalRewards[i] -= baseline
 	}
 
 	rewardVec := cr.MakeVectorData(cr.MakeNumericList(totalRewards))

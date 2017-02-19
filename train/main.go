@@ -24,6 +24,7 @@ func main() {
 	var fetcher Fetcher
 
 	flag.Float64Var(&stepSize, "step", 0.001, "SGD step size")
+	flag.Float64Var(&fetcher.Baseline, "baseline", 2.33, "policy gradient reward baseline")
 	flag.IntVar(&batchSize, "batch", 10, "SGD batch size")
 	flag.IntVar(&hiddenSize, "hidden", 128, "LSTM state size for new agents")
 	flag.StringVar(&netFile, "net", "out_net", "network file path")
@@ -71,11 +72,13 @@ func main() {
 
 type Fetcher struct {
 	Agent      anyrnn.Block
+	Baseline   float64
 	EpisodeLen int
 }
 
 func (f *Fetcher) Fetch(s anysgd.SampleList) (anysgd.Batch, error) {
-	return cuberl.Samples(f.Agent, cuberl.RandomStates(s.Len()), f.EpisodeLen), nil
+	return cuberl.Samples(f.Agent, cuberl.RandomStates(s.Len()), f.EpisodeLen,
+		f.Baseline), nil
 }
 
 func sampleQuality(agent anyrnn.Block, episodeLen int) int {
