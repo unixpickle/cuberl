@@ -26,6 +26,7 @@ func QSamples(agent anyrnn.Block, start []*State, steps int, discount,
 
 	var lastOut anyvec.Vector
 	var lastReward []float64
+	var lastMoves []int
 	for i := 0; i < steps; i++ {
 		cubeIns := make([]anyvec.Vector, len(state))
 		for j, s := range state {
@@ -41,18 +42,20 @@ func QSamples(agent anyrnn.Block, start []*State, steps int, discount,
 			discounted := res.Output().Copy()
 			discounted.Scale(cr.MakeNumeric(discount))
 			outs = append(outs, &anyseq.Batch{
-				Packed:  correctedPred(lastOut, discounted, lastReward),
+				Packed:  correctedPred(lastOut, discounted, lastMoves, lastReward),
 				Present: present,
 			})
 		}
 
 		lastOut = res.Output()
 		lastReward = make([]float64, len(state))
+		lastMoves = make([]int, len(state))
 		for j, s := range state {
 			moveIdx := anyvec.MaxIndex(lastOut.Slice(j*NumActions, (j+1)*NumActions))
 			if rand.Float64() < explore {
 				moveIdx = rand.Intn(NumActions)
 			}
+			lastMoves[j] = moveIdx
 			state[j], lastReward[j] = s.Move(gocube.Move(moveIdx))
 		}
 	}
@@ -66,7 +69,8 @@ func QSamples(agent anyrnn.Block, start []*State, steps int, discount,
 	}
 }
 
-func correctedPred(predictions, nextOut anyvec.Vector, immRew []float64) anyvec.Vector {
+func correctedPred(predictions, nextOut anyvec.Vector, moves []int,
+	immRew []float64) anyvec.Vector {
 	c := predictions.Creator()
 	n := predictions.Len() / NumActions
 	maxMap := anyvec.MapMax(nextOut, NumActions)
@@ -74,13 +78,18 @@ func correctedPred(predictions, nextOut anyvec.Vector, immRew []float64) anyvec.
 	maxMap.Map(nextOut, greedyValues)
 	greedyValues.Add(c.MakeVectorData(c.MakeNumericList(immRew)))
 
-	differences := c.MakeVector(n)
-	maxMap.Map(predictions, differences)
-	differences.Scale(c.MakeNumeric(-1))
-	differences.Add(greedyValues)
+	movesMapIdx := make([]int, len(moves))
+	for i, m := range moves {
+		movesMapIdx[i] = m + i*NumActions
+	}
+	movesMap := c.MakeMapper(predictions.Len(), movesMapIdx)
+
+	oldGuess := c.MakeVector(n)
+	movesMap.Map(predictions, oldGuess)
+	greedyValues.Sub(oldGuess)
 
 	// Use MapTranspose to add the differences.
 	res := predictions.Copy()
-	maxMap.MapTranspose(differences, res)
+	movesMap.MapTranspose(greedyValues, res)
 	return res
 }
