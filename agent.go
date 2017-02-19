@@ -9,7 +9,7 @@ import (
 
 // NewAgent creates a new agent RNN.
 func NewAgent(c anyvec.Creator, hidden int) anyrnn.Block {
-	inScale := c.MakeNumeric(6)
+	inScale := c.MakeNumeric(0x10)
 	return anyrnn.Stack{
 		anyrnn.NewLSTM(c, CubeVectorSize, hidden).ScaleInWeights(inScale),
 		anyrnn.NewLSTM(c, hidden, hidden),
