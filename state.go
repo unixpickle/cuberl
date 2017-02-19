@@ -33,6 +33,7 @@ func RandomStates(n int) []*State {
 	res := make([]*State, n)
 	for i := range res {
 		res[i] = &State{Cube: gocube.RandomCubieCube()}
+		res[i].MaxSolved = res[i].NumSolved()
 	}
 	return res
 }
