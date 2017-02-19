@@ -16,6 +16,7 @@ func NewAgent(c anyvec.Creator, hidden int) anyrnn.Block {
 		&anyrnn.LayerBlock{
 			Layer: anynet.Net{
 				anynet.NewFC(c, hidden, NumActions),
+				anynet.Exp,
 			},
 		},
 	}
