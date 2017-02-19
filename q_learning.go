@@ -14,6 +14,10 @@ import (
 // adjust the agent's value function using Q-Learning.
 func QSamples(agent anyrnn.Block, start []*State, steps int, discount,
 	explore float64) *anys2s.Batch {
+	if steps == 0 {
+		panic("must take at least one step")
+	}
+
 	state := append([]*State{}, start...)
 	blockState := agent.Start(len(start))
 	cr := agentCreator(agent)
@@ -60,8 +64,12 @@ func QSamples(agent anyrnn.Block, start []*State, steps int, discount,
 		}
 	}
 
-	// No correction for the last output.
-	outs = append(outs, &anyseq.Batch{Packed: lastOut, Present: present})
+	// The final timestep has no bootstrapping.
+	zeroNext := cr.MakeVector(lastOut.Len())
+	outs = append(outs, &anyseq.Batch{
+		Packed:  correctedPred(lastOut, zeroNext, lastMoves, lastReward),
+		Present: present,
+	})
 
 	return &anys2s.Batch{
 		Inputs:  anyseq.ConstSeq(cr, ins),
