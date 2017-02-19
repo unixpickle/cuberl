@@ -44,7 +44,7 @@ func main() {
 		Func: func(sq anyseq.Seq) anyseq.Seq {
 			return anyrnn.Map(sq, fetcher.Agent)
 		},
-		Cost:    anynet.MSE{},
+		Cost:    anynet.DotCost{},
 		Params:  fetcher.Agent.(anynet.Parameterizer).Parameters(),
 		Average: true,
 	}
