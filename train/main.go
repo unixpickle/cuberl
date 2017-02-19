@@ -27,10 +27,7 @@ func main() {
 	flag.IntVar(&batchSize, "batch", 10, "SGD batch size")
 	flag.IntVar(&hiddenSize, "hidden", 128, "LSTM state size for new agents")
 	flag.StringVar(&netFile, "net", "out_net", "network file path")
-
 	flag.IntVar(&fetcher.EpisodeLen, "len", 50, "episode length")
-	flag.Float64Var(&fetcher.Explore, "explore", 0.01, "explore probability")
-	flag.Float64Var(&fetcher.Discount, "discount", 0.9, "reward discount factor")
 
 	flag.Parse()
 
@@ -75,18 +72,15 @@ func main() {
 type Fetcher struct {
 	Agent      anyrnn.Block
 	EpisodeLen int
-	Explore    float64
-	Discount   float64
 }
 
 func (f *Fetcher) Fetch(s anysgd.SampleList) (anysgd.Batch, error) {
-	return cuberl.QSamples(f.Agent, cuberl.RandomStates(s.Len()), f.EpisodeLen,
-		f.Discount, f.Explore), nil
+	return cuberl.Samples(f.Agent, cuberl.RandomStates(s.Len()), f.EpisodeLen), nil
 }
 
 func sampleQuality(agent anyrnn.Block, episodeLen int) int {
 	state := cuberl.RandomStates(1)[0]
-	moves := cuberl.AgentMoves(agent, state, episodeLen)
+	moves := cuberl.AgentMoves(agent, state, episodeLen, false)
 	for _, x := range moves {
 		state, _ = state.Move(x)
 	}
