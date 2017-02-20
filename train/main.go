@@ -57,8 +57,8 @@ func main() {
 		BatchSize:   batchSize,
 		Rater:       anysgd.ConstRater(stepSize),
 		StatusFunc: func(b anysgd.Batch) {
-			qual := sampleQuality(fetcher.Agent, fetcher.EpisodeLen)
-			log.Printf("iter %d: cost=%v nsolved=%d", iter, tr.LastCost, qual)
+			rew := sampleReward(fetcher.Agent, fetcher.EpisodeLen)
+			log.Printf("iter %d: cost=%v reward=%d", iter, tr.LastCost, rew)
 			iter++
 		},
 	}
@@ -81,11 +81,12 @@ func (f *Fetcher) Fetch(s anysgd.SampleList) (anysgd.Batch, error) {
 		f.Baseline), nil
 }
 
-func sampleQuality(agent anyrnn.Block, episodeLen int) int {
+func sampleReward(agent anyrnn.Block, episodeLen int) int {
 	state := cuberl.RandomStates(1)[0]
+	start := state.MaxSolved
 	moves := cuberl.AgentMoves(agent, state, episodeLen, false)
 	for _, x := range moves {
 		state, _ = state.Move(x)
 	}
-	return state.MaxSolved
+	return state.MaxSolved - start
 }
