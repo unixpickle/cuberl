@@ -15,11 +15,13 @@ func main() {
 
 	var epLen int
 	var epCount int
+	var objective cuberl.Objective
 	flag.IntVar(&epLen, "len", 50, "episode length")
 	flag.IntVar(&epCount, "n", 50000, "episode count")
+	flag.Var(&objective, "objective", cuberl.ObjectiveUsage)
 	flag.Parse()
 
-	start := cuberl.RandomStates(epCount)
+	start := cuberl.RandomStates(objective, epCount)
 
 	var sum int
 	var rewardSum int
