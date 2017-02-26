@@ -18,6 +18,8 @@ const CubeVectorSize = 8 * 6 * 6
 
 // State implements cube dynamics and a reward mechanism.
 type State struct {
+	Objective Objective
+
 	// Cube is the current state of the cube.
 	Cube gocube.CubieCube
 
@@ -29,10 +31,10 @@ type State struct {
 }
 
 // RandomStates produces n random start states.
-func RandomStates(n int) []*State {
+func RandomStates(o Objective, n int) []*State {
 	res := make([]*State, n)
 	for i := range res {
-		res[i] = &State{Cube: gocube.RandomCubieCube()}
+		res[i] = &State{Cube: gocube.RandomCubieCube(), Objective: o}
 		res[i].MaxSolved = res[i].NumSolved()
 	}
 	return res
@@ -47,21 +49,10 @@ func (s *State) Move(m gocube.Move) (*State, float64) {
 	return &newS, math.Max(0, float64(newS.NumSolved()-s.MaxSolved))
 }
 
-// NumSolved returns the number of solved pieces.
-// This will range from 0 to 20.
+// NumSolved returns the number of solved pieces according
+// to the objective.
 func (s *State) NumSolved() int {
-	var c int
-	for i, x := range s.Cube.Edges[:] {
-		if x.Piece == i && !x.Flip {
-			c++
-		}
-	}
-	for i, x := range s.Cube.Corners[:] {
-		if x.Piece == i && x.Orientation == 1 {
-			c++
-		}
-	}
-	return c
+	return s.Objective.Evaluate(&s.Cube)
 }
 
 // CubeVector produces a vector representation of the

@@ -29,6 +29,7 @@ func main() {
 	flag.IntVar(&hiddenSize, "hidden", 128, "LSTM state size for new agents")
 	flag.StringVar(&netFile, "net", "out_net", "network file path")
 	flag.IntVar(&fetcher.EpisodeLen, "len", 50, "episode length")
+	flag.Var(&fetcher.Objective, "objective", cuberl.ObjectiveUsage)
 
 	flag.Parse()
 
@@ -57,7 +58,7 @@ func main() {
 		BatchSize:   batchSize,
 		Rater:       anysgd.ConstRater(stepSize),
 		StatusFunc: func(b anysgd.Batch) {
-			rew := sampleReward(fetcher.Agent, fetcher.EpisodeLen)
+			rew := fetcher.SampleReward()
 			log.Printf("iter %d: cost=%v reward=%d", iter, tr.LastCost, rew)
 			iter++
 		},
@@ -74,17 +75,18 @@ type Fetcher struct {
 	Agent      anyrnn.Block
 	Baseline   float64
 	EpisodeLen int
+	Objective  cuberl.Objective
 }
 
 func (f *Fetcher) Fetch(s anysgd.SampleList) (anysgd.Batch, error) {
-	return cuberl.Samples(f.Agent, cuberl.RandomStates(s.Len()), f.EpisodeLen,
-		f.Baseline), nil
+	states := cuberl.RandomStates(f.Objective, s.Len())
+	return cuberl.Samples(f.Agent, states, f.EpisodeLen, f.Baseline), nil
 }
 
-func sampleReward(agent anyrnn.Block, episodeLen int) int {
-	state := cuberl.RandomStates(1)[0]
+func (f *Fetcher) SampleReward() int {
+	state := cuberl.RandomStates(f.Objective, 1)[0]
 	start := state.MaxSolved
-	moves := cuberl.AgentMoves(agent, state, episodeLen, false)
+	moves := cuberl.AgentMoves(f.Agent, state, f.EpisodeLen, false)
 	for _, x := range moves {
 		state, _ = state.Move(x)
 	}

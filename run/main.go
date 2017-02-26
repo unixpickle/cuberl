@@ -20,11 +20,13 @@ func main() {
 	var scramble string
 	var episodeLen int
 	var greedy bool
+	var objective cuberl.Objective
 
 	flag.StringVar(&netFile, "net", "../train/out_net", "network file")
 	flag.StringVar(&scramble, "scramble", "", "cube scramble")
 	flag.IntVar(&episodeLen, "len", 50, "episode length")
 	flag.BoolVar(&greedy, "greedy", false, "choose actions greedily")
+	flag.Var(&objective, "objective", cuberl.ObjectiveUsage)
 
 	flag.Parse()
 
@@ -47,7 +49,7 @@ func main() {
 		cube.Move(m)
 	}
 
-	state := &cuberl.State{Cube: cube}
+	state := &cuberl.State{Cube: cube, Objective: objective}
 	state.MaxSolved = state.NumSolved()
 	results := cuberl.AgentMoves(net, state, episodeLen, greedy)
 
