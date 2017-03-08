@@ -62,13 +62,13 @@ func (o *Objective) Evaluate(cube *gocube.CubieCube) int {
 			}
 		}
 	case FirstLayer:
-		for i := range []int{0, 8, 10, 11} {
+		for _, i := range []int{0, 8, 10, 11} {
 			x := cube.Edges[i]
 			if x.Piece == i && !x.Flip {
 				c++
 			}
 		}
-		for i := range []int{0, 1, 4, 5} {
+		for _, i := range []int{0, 1, 4, 5} {
 			x := cube.Corners[i]
 			if x.Piece == i && x.Orientation == 1 {
 				c++
