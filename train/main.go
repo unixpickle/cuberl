@@ -22,11 +22,13 @@ func main() {
 	var epLen int
 	var objective cuberl.Objective
 	var cgIters int
+	var layers int
 
 	flag.Float64Var(&stepSize, "step", 0.01, "TRPO step size")
 	flag.IntVar(&cgIters, "cgiters", 10, "CG iterations for TRPO")
 	flag.IntVar(&batchSize, "batch", 10, "experience batch size")
 	flag.IntVar(&hiddenSize, "hidden", 128, "LSTM state size for new agents")
+	flag.IntVar(&layers, "layers", 1, "number of LSTM layers")
 	flag.StringVar(&netFile, "net", "out_net", "network file path")
 	flag.IntVar(&epLen, "len", 20, "episode length")
 	flag.Var(&objective, "objective", cuberl.ObjectiveUsage)
@@ -38,7 +40,7 @@ func main() {
 	var policy anyrnn.Block
 	if err := serializer.LoadAny(netFile, &policy); err != nil {
 		log.Println("Creating new network...")
-		policy = cuberl.NewPolicy(creator, hiddenSize)
+		policy = cuberl.NewPolicy(creator, layers, hiddenSize)
 	} else {
 		log.Println("Loaded network.")
 	}

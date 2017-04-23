@@ -9,17 +9,20 @@ import (
 )
 
 // NewPolicy creates a new policy RNN.
-func NewPolicy(c anyvec.Creator, hidden int) anyrnn.Block {
+func NewPolicy(c anyvec.Creator, hidden, layers int) anyrnn.Block {
 	inScale := c.MakeNumeric(0x10)
-	return anyrnn.Stack{
+	res := anyrnn.Stack{
 		anyrnn.NewLSTM(c, CubeVectorSize, hidden).ScaleInWeights(inScale),
-		anyrnn.NewLSTM(c, hidden, hidden),
-		&anyrnn.LayerBlock{
-			Layer: anynet.Net{
-				anynet.NewFC(c, hidden, NumActions),
-			},
-		},
 	}
+	for i := 1; i < layers; i++ {
+		res = append(res, anyrnn.NewLSTM(c, hidden, hidden))
+	}
+	res = append(res, &anyrnn.LayerBlock{
+		Layer: anynet.Net{
+			anynet.NewFC(c, hidden, NumActions),
+		},
+	})
+	return res
 }
 
 // PolicyMoves runs the policy on the start state to get
