@@ -40,7 +40,7 @@ func main() {
 	var policy anyrnn.Block
 	if err := serializer.LoadAny(netFile, &policy); err != nil {
 		log.Println("Creating new network...")
-		policy = cuberl.NewPolicy(creator, layers, hiddenSize)
+		policy = cuberl.NewPolicy(creator, hiddenSize, layers)
 	} else {
 		log.Println("Loaded network.")
 	}
