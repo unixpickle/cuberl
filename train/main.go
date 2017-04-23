@@ -4,11 +4,9 @@ import (
 	"flag"
 	"log"
 
-	"github.com/unixpickle/anydiff/anyseq"
 	"github.com/unixpickle/anynet"
 	"github.com/unixpickle/anynet/anyrnn"
-	"github.com/unixpickle/anynet/anys2s"
-	"github.com/unixpickle/anynet/anysgd"
+	"github.com/unixpickle/anyrl"
 	"github.com/unixpickle/anyvec/anyvec32"
 	"github.com/unixpickle/cuberl"
 	"github.com/unixpickle/essentials"
@@ -21,74 +19,66 @@ func main() {
 	var batchSize int
 	var netFile string
 	var hiddenSize int
-	var fetcher Fetcher
+	var epLen int
+	var objective cuberl.Objective
+	var cgIters int
 
-	flag.Float64Var(&stepSize, "step", 0.001, "SGD step size")
-	flag.Float64Var(&fetcher.Baseline, "baseline", 2.33, "policy gradient reward baseline")
-	flag.IntVar(&batchSize, "batch", 10, "SGD batch size")
+	flag.Float64Var(&stepSize, "step", 0.01, "TRPO step size")
+	flag.IntVar(&cgIters, "cgiters", 10, "CG iterations for TRPO")
+	flag.IntVar(&batchSize, "batch", 10, "experience batch size")
 	flag.IntVar(&hiddenSize, "hidden", 128, "LSTM state size for new agents")
 	flag.StringVar(&netFile, "net", "out_net", "network file path")
-	flag.IntVar(&fetcher.EpisodeLen, "len", 50, "episode length")
-	flag.Var(&fetcher.Objective, "objective", cuberl.ObjectiveUsage)
+	flag.IntVar(&epLen, "len", 20, "episode length")
+	flag.Var(&objective, "objective", cuberl.ObjectiveUsage)
 
 	flag.Parse()
 
-	if err := serializer.LoadAny(netFile, &fetcher.Agent); err != nil {
+	creator := anyvec32.CurrentCreator()
+
+	var policy anyrnn.Block
+	if err := serializer.LoadAny(netFile, &policy); err != nil {
 		log.Println("Creating new network...")
-		fetcher.Agent = cuberl.NewAgent(anyvec32.CurrentCreator(), hiddenSize)
+		policy = cuberl.NewPolicy(creator, hiddenSize)
 	} else {
 		log.Println("Loaded network.")
 	}
 
-	log.Println("Training...")
-	tr := &anys2s.Trainer{
-		Func: func(sq anyseq.Seq) anyseq.Seq {
-			return anyrnn.Map(sq, fetcher.Agent)
-		},
-		Cost:    anynet.DotCost{},
-		Params:  fetcher.Agent.(anynet.Parameterizer).Parameters(),
-		Average: true,
+	envs := make([]anyrl.Env, batchSize)
+	for i := range envs {
+		envs[i] = &cuberl.Env{
+			Creator:   creator,
+			Objective: objective,
+			EpLen:     epLen,
+		}
 	}
-	var iter int
-	sgd := &anysgd.SGD{
-		Samples:     anysgd.LengthSampleList(batchSize),
-		Gradienter:  tr,
-		Fetcher:     &fetcher,
-		Transformer: &anysgd.Adam{},
-		BatchSize:   batchSize,
-		Rater:       anysgd.ConstRater(stepSize),
-		StatusFunc: func(b anysgd.Batch) {
-			rew := fetcher.SampleReward()
-			log.Printf("iter %d: cost=%v reward=%d", iter, tr.LastCost, rew)
-			iter++
+
+	trpo := &anyrl.TRPO{
+		NaturalPG: anyrl.NaturalPG{
+			Policy:      policy,
+			Params:      anynet.AllParameters(policy),
+			ActionSpace: anyrl.Softmax{},
+			Iters:       cgIters,
 		},
+		TargetKL: stepSize,
 	}
-	sgd.Run(rip.NewRIP().Chan())
+
+	r := rip.NewRIP()
+	var batchIdx int
+	for !r.Done() {
+		batch, err := anyrl.RolloutRNN(creator, policy, anyrl.Softmax{}, envs...)
+		if err != nil {
+			panic(err)
+		}
+		log.Printf("batch %d: reward=%v", batchIdx, batch.MeanReward(creator))
+		batchIdx++
+		if r.Done() {
+			break
+		}
+		trpo.Run(batch).AddToVars()
+	}
 
 	log.Println("Saving...")
-	if err := serializer.SaveAny(netFile, fetcher.Agent); err != nil {
+	if err := serializer.SaveAny(netFile, policy); err != nil {
 		essentials.Die(err)
 	}
-}
-
-type Fetcher struct {
-	Agent      anyrnn.Block
-	Baseline   float64
-	EpisodeLen int
-	Objective  cuberl.Objective
-}
-
-func (f *Fetcher) Fetch(s anysgd.SampleList) (anysgd.Batch, error) {
-	states := cuberl.RandomStates(f.Objective, s.Len())
-	return cuberl.Samples(f.Agent, states, f.EpisodeLen, f.Baseline), nil
-}
-
-func (f *Fetcher) SampleReward() int {
-	state := cuberl.RandomStates(f.Objective, 1)[0]
-	start := state.MaxSolved
-	moves := cuberl.AgentMoves(f.Agent, state, f.EpisodeLen, false)
-	for _, x := range moves {
-		state, _ = state.Move(x)
-	}
-	return state.MaxSolved - start
 }

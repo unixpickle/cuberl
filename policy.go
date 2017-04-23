@@ -3,12 +3,13 @@ package cuberl
 import (
 	"github.com/unixpickle/anynet"
 	"github.com/unixpickle/anynet/anyrnn"
+	"github.com/unixpickle/anyrl"
 	"github.com/unixpickle/anyvec"
 	"github.com/unixpickle/gocube"
 )
 
-// NewAgent creates a new agent RNN.
-func NewAgent(c anyvec.Creator, hidden int) anyrnn.Block {
+// NewPolicy creates a new policy RNN.
+func NewPolicy(c anyvec.Creator, hidden int) anyrnn.Block {
 	inScale := c.MakeNumeric(0x10)
 	return anyrnn.Stack{
 		anyrnn.NewLSTM(c, CubeVectorSize, hidden).ScaleInWeights(inScale),
@@ -16,18 +17,17 @@ func NewAgent(c anyvec.Creator, hidden int) anyrnn.Block {
 		&anyrnn.LayerBlock{
 			Layer: anynet.Net{
 				anynet.NewFC(c, hidden, NumActions),
-				anynet.LogSoftmax,
 			},
 		},
 	}
 }
 
-// AgentMoves runs the agent on the start state to get
+// PolicyMoves runs the policy on the start state to get
 // a sequence of n moves.
 // If greedy is false, then moves are sampled rather than
 // being taken greedily.
-func AgentMoves(a anyrnn.Block, s *State, n int, greedy bool) []gocube.Move {
-	cr := agentCreator(a)
+func PolicyMoves(a anyrnn.Block, s *State, n int, greedy bool) []gocube.Move {
+	cr := policyCreator(a)
 	bs := a.Start(1)
 	res := []gocube.Move{}
 	for i := 0; i < n; i++ {
@@ -38,7 +38,8 @@ func AgentMoves(a anyrnn.Block, s *State, n int, greedy bool) []gocube.Move {
 		if greedy {
 			move = gocube.Move(anyvec.MaxIndex(out.Output()))
 		} else {
-			move = gocube.Move(sampleMove(out.Output().Copy()))
+			sampled := anyrl.Softmax{}.Sample(out.Output(), 1)
+			move = gocube.Move(anyvec.MaxIndex(sampled))
 		}
 		s, _ = s.Move(move)
 		res = append(res, move)
@@ -46,6 +47,6 @@ func AgentMoves(a anyrnn.Block, s *State, n int, greedy bool) []gocube.Move {
 	return res
 }
 
-func agentCreator(b anyrnn.Block) anyvec.Creator {
+func policyCreator(b anyrnn.Block) anyvec.Creator {
 	return b.(anynet.Parameterizer).Parameters()[0].Vector.Creator()
 }
