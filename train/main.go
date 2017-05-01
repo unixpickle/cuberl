@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"math"
 
 	"github.com/unixpickle/anynet"
 	"github.com/unixpickle/anynet/anyrnn"
@@ -10,6 +11,8 @@ import (
 	"github.com/unixpickle/anyvec/anyvec32"
 	"github.com/unixpickle/cuberl"
 	"github.com/unixpickle/essentials"
+	"github.com/unixpickle/lazyseq"
+	"github.com/unixpickle/lazyseq/lazyrnn"
 	"github.com/unixpickle/rip"
 	"github.com/unixpickle/serializer"
 )
@@ -23,6 +26,7 @@ func main() {
 	var objective cuberl.Objective
 	var cgIters int
 	var layers int
+	var lowmem bool
 
 	flag.Float64Var(&stepSize, "step", 0.01, "TRPO step size")
 	flag.IntVar(&cgIters, "cgiters", 10, "CG iterations for TRPO")
@@ -32,6 +36,7 @@ func main() {
 	flag.StringVar(&netFile, "net", "out_net", "network file path")
 	flag.IntVar(&epLen, "len", 20, "episode length")
 	flag.Var(&objective, "objective", cuberl.ObjectiveUsage)
+	flag.BoolVar(&lowmem, "lowmem", false, "use a memory-saving algorithm")
 
 	flag.Parse()
 
@@ -60,6 +65,16 @@ func main() {
 			Params:      anynet.AllParameters(policy),
 			ActionSpace: anyrl.Softmax{},
 			Iters:       cgIters,
+
+			ApplyPolicy: func(seq lazyseq.Rereader, b anyrnn.Block) lazyseq.Rereader {
+				if lowmem {
+					interval := essentials.MaxInt(1, int(math.Sqrt(float64(epLen))))
+					out := lazyrnn.FixedHSM(interval, true, seq, b)
+					return lazyseq.Lazify(lazyseq.Unlazify(out))
+				} else {
+					return lazyseq.Lazify(anyrnn.Map(lazyseq.Unlazify(seq), b))
+				}
+			},
 		},
 		TargetKL: stepSize,
 	}
