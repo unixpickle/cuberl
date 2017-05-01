@@ -51,7 +51,7 @@ func main() {
 
 	state := &cuberl.State{Cube: cube, Objective: objective}
 	state.MaxSolved = state.NumSolved()
-	results := cuberl.AgentMoves(net, state, episodeLen, greedy)
+	results := cuberl.PolicyMoves(net, state, episodeLen, greedy)
 
 	for _, m := range results {
 		var rew float64
