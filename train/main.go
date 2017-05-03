@@ -8,6 +8,7 @@ import (
 	"github.com/unixpickle/anynet"
 	"github.com/unixpickle/anynet/anyrnn"
 	"github.com/unixpickle/anyrl"
+	"github.com/unixpickle/anyrl/anypg"
 	"github.com/unixpickle/anyvec/anyvec32"
 	"github.com/unixpickle/cuberl"
 	"github.com/unixpickle/essentials"
@@ -59,8 +60,8 @@ func main() {
 		}
 	}
 
-	trpo := &anyrl.TRPO{
-		NaturalPG: anyrl.NaturalPG{
+	trpo := &anypg.TRPO{
+		NaturalPG: anypg.NaturalPG{
 			Policy:      policy,
 			Params:      anynet.AllParameters(policy),
 			ActionSpace: anyrl.Softmax{},
