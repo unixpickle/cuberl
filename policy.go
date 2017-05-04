@@ -19,7 +19,7 @@ func NewPolicy(c anyvec.Creator, hidden, layers int) anyrnn.Block {
 	}
 	res = append(res, &anyrnn.LayerBlock{
 		Layer: anynet.Net{
-			anynet.NewFC(c, hidden, NumActions),
+			anynet.NewFCZero(c, hidden, NumActions),
 		},
 	})
 	return res
