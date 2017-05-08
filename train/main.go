@@ -79,15 +79,16 @@ func main() {
 		},
 		TargetKL: stepSize,
 	}
+	roller := &anyrl.RNNRoller{Block: policy, ActionSpace: anyrl.Softmax{}}
 
 	r := rip.NewRIP()
 	var batchIdx int
 	for !r.Done() {
-		batch, err := anyrl.RolloutRNN(creator, policy, anyrl.Softmax{}, envs...)
+		batch, err := roller.Rollout(envs...)
 		if err != nil {
 			panic(err)
 		}
-		log.Printf("batch %d: reward=%v", batchIdx, batch.MeanReward(creator))
+		log.Printf("batch %d: reward=%f", batchIdx, batch.Rewards.Mean())
 		batchIdx++
 		if r.Done() {
 			break
