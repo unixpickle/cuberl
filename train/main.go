@@ -28,6 +28,7 @@ func main() {
 	var cgIters int
 	var layers int
 	var lowmem bool
+	var nprnn bool
 
 	flag.Float64Var(&stepSize, "step", 0.01, "TRPO step size")
 	flag.IntVar(&cgIters, "cgiters", 10, "CG iterations for TRPO")
@@ -38,6 +39,7 @@ func main() {
 	flag.IntVar(&epLen, "len", 20, "episode length")
 	flag.Var(&objective, "objective", cuberl.ObjectiveUsage)
 	flag.BoolVar(&lowmem, "lowmem", false, "use a memory-saving algorithm")
+	flag.BoolVar(&nprnn, "nprnn", false, "use npRNN instead of LSTM")
 
 	flag.Parse()
 
@@ -46,7 +48,7 @@ func main() {
 	var policy anyrnn.Block
 	if err := serializer.LoadAny(netFile, &policy); err != nil {
 		log.Println("Creating new network...")
-		policy = cuberl.NewPolicy(creator, hiddenSize, layers)
+		policy = cuberl.NewPolicy(creator, hiddenSize, layers, nprnn)
 	} else {
 		log.Println("Loaded network.")
 	}

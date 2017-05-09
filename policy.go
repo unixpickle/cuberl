@@ -2,6 +2,7 @@ package cuberl
 
 import (
 	"github.com/unixpickle/anynet"
+	"github.com/unixpickle/anynet/anymisc"
 	"github.com/unixpickle/anynet/anyrnn"
 	"github.com/unixpickle/anyrl"
 	"github.com/unixpickle/anyvec"
@@ -9,13 +10,20 @@ import (
 )
 
 // NewPolicy creates a new policy RNN.
-func NewPolicy(c anyvec.Creator, hidden, layers int) anyrnn.Block {
-	inScale := c.MakeNumeric(0x10)
+func NewPolicy(c anyvec.Creator, hidden, layers int, nprnn bool) anyrnn.Block {
+	makeBlock := func(in, out int, scale float64) anyrnn.Block {
+		scaleNum := c.MakeNumeric(scale)
+		if nprnn {
+			return anymisc.NewNPRNN(c, in, out).ScaleInWeights(scaleNum)
+		} else {
+			return anyrnn.NewLSTM(c, in, out).ScaleInWeights(scaleNum)
+		}
+	}
 	res := anyrnn.Stack{
-		anyrnn.NewLSTM(c, CubeVectorSize, hidden).ScaleInWeights(inScale),
+		makeBlock(CubeVectorSize, hidden, 0x10),
 	}
 	for i := 1; i < layers; i++ {
-		res = append(res, anyrnn.NewLSTM(c, hidden, hidden))
+		res = append(res, makeBlock(hidden, hidden, 1))
 	}
 	res = append(res, &anyrnn.LayerBlock{
 		Layer: anynet.Net{
