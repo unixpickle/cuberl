@@ -8,7 +8,7 @@ import (
 
 // ObjectiveUsage is a usage string for a command-line
 // "-objective" flag.
-const ObjectiveUsage = "agent objective (FullCube or FirstLayer)"
+const ObjectiveUsage = "agent objective (FullCube, FirstLayer, or PetrusBlock)"
 
 // Objective indicates what part of the cube the agent is
 // supposed to be solving.
@@ -17,6 +17,7 @@ type Objective int
 const (
 	FullCube Objective = iota
 	FirstLayer
+	PetrusBlock
 )
 
 // String returns the human-readable name for the
@@ -27,6 +28,8 @@ func (o *Objective) String() string {
 		return "FullCube"
 	case FirstLayer:
 		return "FirstLayer"
+	case PetrusBlock:
+		return "PetrusBlock"
 	default:
 		panic("invaild Objective")
 	}
@@ -61,14 +64,22 @@ func (o *Objective) Evaluate(cube *gocube.CubieCube) int {
 				c++
 			}
 		}
-	case FirstLayer:
-		for _, i := range []int{0, 8, 10, 11} {
+	case FirstLayer, PetrusBlock:
+		var edges, corners []int
+		if *o == FirstLayer {
+			edges = []int{0, 8, 10, 11}
+			corners = []int{0, 1, 4, 5}
+		} else if *o == PetrusBlock {
+			edges = []int{2, 3, 8, 9, 10}
+			corners = []int{0, 4}
+		}
+		for _, i := range edges {
 			x := cube.Edges[i]
 			if x.Piece == i && !x.Flip {
 				c++
 			}
 		}
-		for _, i := range []int{0, 1, 4, 5} {
+		for _, i := range corners {
 			x := cube.Corners[i]
 			if x.Piece == i && x.Orientation == 1 {
 				c++
