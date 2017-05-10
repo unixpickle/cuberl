@@ -67,7 +67,7 @@ func (o *Objective) Evaluate(cube *gocube.CubieCube) int {
 	case FirstLayer, PetrusBlock:
 		var edges, corners []int
 		if *o == FirstLayer {
-			edges = []int{0, 8, 10, 11}
+			edges = []int{2, 8, 10, 11}
 			corners = []int{0, 1, 4, 5}
 		} else if *o == PetrusBlock {
 			edges = []int{2, 3, 8, 9, 10}
