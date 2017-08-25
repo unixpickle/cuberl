@@ -13,6 +13,11 @@ type Env struct {
 	Objective Objective
 	EpLen     int
 
+	// FullState, if true, indicates that the maximum
+	// number of solved pieces should be included in
+	// observation vectors.
+	FullState bool
+
 	state    *State
 	timestep int
 }
@@ -42,5 +47,13 @@ func (e *Env) Step(action anyvec.Vector) (obs anyvec.Vector, rew float64,
 }
 
 func (e *Env) vec() anyvec.Vector {
-	return CubeVector(e.Creator, &e.state.Cube)
+	c := e.Creator
+	res := CubeVector(c, &e.state.Cube)
+	if e.FullState {
+		res = c.Concat(
+			res,
+			c.MakeVectorData(c.MakeNumericList([]float64{float64(e.state.MaxSolved)})),
+		)
+	}
+	return res
 }
