@@ -3,7 +3,6 @@ package cuberl
 import (
 	"math"
 
-	"github.com/unixpickle/anyvec"
 	"github.com/unixpickle/essentials"
 	"github.com/unixpickle/gocube"
 )
@@ -57,7 +56,7 @@ func (s *State) NumSolved() int {
 
 // CubeVector produces a vector representation of the
 // cube state.
-func CubeVector(creator anyvec.Creator, cube *gocube.CubieCube) anyvec.Vector {
+func CubeVector(cube *gocube.CubieCube) []float64 {
 	stickers := cube.StickerCube()
 	data := make([]float64, 0, CubeVectorSize)
 	for i, x := range stickers[:] {
@@ -69,5 +68,5 @@ func CubeVector(creator anyvec.Creator, cube *gocube.CubieCube) anyvec.Vector {
 		subVec[x-1] = 1
 		data = append(data, subVec...)
 	}
-	return creator.MakeVectorData(creator.MakeNumericList(data))
+	return data
 }

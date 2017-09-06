@@ -42,7 +42,7 @@ func PolicyMoves(a anyrnn.Block, s *State, n int, greedy bool) []gocube.Move {
 	bs := a.Start(1)
 	res := []gocube.Move{}
 	for i := 0; i < n; i++ {
-		out := a.Step(bs, CubeVector(cr, &s.Cube))
+		out := a.Step(bs, anyvec.Make(cr, CubeVector(&s.Cube)))
 		bs = out.State()
 
 		var move gocube.Move

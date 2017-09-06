@@ -16,6 +16,8 @@ import (
 	"github.com/unixpickle/lazyseq/lazyrnn"
 	"github.com/unixpickle/rip"
 	"github.com/unixpickle/serializer"
+
+	_ "github.com/unixpickle/anyplugin"
 )
 
 func main() {
@@ -56,7 +58,6 @@ func main() {
 	envs := make([]anyrl.Env, batchSize)
 	for i := range envs {
 		envs[i] = &cuberl.Env{
-			Creator:   creator,
 			Objective: objective,
 			EpLen:     epLen,
 		}
