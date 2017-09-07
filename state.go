@@ -29,12 +29,18 @@ type State struct {
 	MaxSolved int
 }
 
+// NewState generates a State based on an existing cube.
+func NewState(o Objective, cube gocube.CubieCube) *State {
+	res := &State{Objective: o, Cube: cube}
+	res.MaxSolved = res.NumSolved()
+	return res
+}
+
 // RandomStates produces n random start states.
 func RandomStates(o Objective, n int) []*State {
 	res := make([]*State, n)
 	for i := range res {
-		res[i] = &State{Cube: gocube.RandomCubieCube(), Objective: o}
-		res[i].MaxSolved = res[i].NumSolved()
+		res[i] = NewState(o, gocube.RandomCubieCube())
 	}
 	return res
 }

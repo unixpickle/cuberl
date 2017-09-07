@@ -16,13 +16,21 @@ type Env struct {
 	// observation vectors.
 	FullState bool
 
+	// FixedStart, if non-nil, is the scramble to start
+	// with on every reset.
+	FixedStart *gocube.CubieCube
+
 	state    *State
 	timestep int
 }
 
 // Reset generates a new state.
 func (e *Env) Reset() ([]float64, error) {
-	e.state = RandomStates(e.Objective, 1)[0]
+	if e.FixedStart == nil {
+		e.state = RandomStates(e.Objective, 1)[0]
+	} else {
+		e.state = NewState(e.Objective, *e.FixedStart)
+	}
 	e.timestep = 0
 	return e.vec(), nil
 }
